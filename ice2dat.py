@@ -79,7 +79,7 @@ LABE_BASE_LOC = compass.UTMLocation(624250, 4618880, 1455, zone=10, datum=compas
 def ice2survey(rows, date=None, declination=0.0, team='', survey_id='A', origin=None, cave_name='', comment=''):
     """Convert an iterable of row dicts (csv.DictReader) to a compass.Survey"""
     if survey_id.upper().startswith('S'):
-        raise IllegalArgumentException("Station identifier 'S' reserved for ice surface points")
+        raise ValueError("Station identifier 'S' reserved for ice surface points")
     origin = survey_id + '0' if not origin else origin
     survey = compass.Survey(date=date, declination=declination, team=team, name=survey_id, cave_name=cave_name, comment=comment)
     survey.length_units = 'M'
