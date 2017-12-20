@@ -163,9 +163,32 @@ def gdal_grid(perimeter_fname, point_fname, output_grid_fname):
         'gdalwarp',
         '-q',
         '-cutline', '"%s"' % perimeter_fname,
-        '-dstnodata', '-999',
+        '-dstnodata', '-999',  # raster "no data" value
         '"%s"' % output_grid_tmpname,
         '"%s"' % output_grid_fname,
+    ])
+    print(cmd)
+    subprocess.check_call(cmd, shell=True)
+
+
+def gdal_contour(grid_fname, output_contour_fname):
+    """
+    Generate a contour polyline given a raster grid.
+
+    This spawns a new process that calls out to the `gdal_contour` executable.
+
+    :param grid_fname:
+    :param output_contour_fname:
+    :return:  `True` on success
+    :raises subprocess.CalledProcessError:  on failure
+    """
+    cmd = ' '.join([
+        'gdal_contour',
+        '-q',
+        '-a', 'Elev',
+        '-i', '0.1',  # contour interval in meters
+        '"%s"' % grid_fname,
+        '"%s"' % output_contour_fname,
     ])
     print(cmd)
     subprocess.check_call(cmd, shell=True)
@@ -292,10 +315,11 @@ def process(excelfname, **kwargs):
                 out_points.point(*p.coords)
                 out_csv.writerow(p.coords)
 
-    out_perimeter.save(basename+'_perimeter')
-    out_points.save(basename+'_points')
+    out_perimeter.save(basename+'_perimeter.shp')
+    out_points.save(basename+'_points.shp')
 
     gdal_grid(basename+'_perimeter.shp', basename+'_points.shp', basename+'_grid.tif')
+    gdal_contour(basename+'_grid.tif', basename+'_contour.shp')
 
 
 def main():
