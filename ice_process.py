@@ -224,6 +224,8 @@ class Point(object):
         return {'type': 'Point', 'coordinates': (self.x, self.y, self.z)}
 
     def __eq__(self, other):
+        if other is None:
+            return False
         return self.x, self.y, self.z, self.name == other.x, other.y, other.z, other.name
 
     def __repr__(self):
@@ -238,24 +240,32 @@ def excel_tiein(sheet, declination=0.0):
     stations = {}
 
     for row in ExcelWorksheetReader(sheet):
+        stations[row['From']] = stations.get(row['From'], None)
         if row.get('Alt m', None) not in (None, ''):
             print('Found fixed station!  %s' % row)
             stations[row['To']] = Point(row.get('UTM East',0), row.get('UTM North',0), row.get('Alt m',0))
-
-    for row in ExcelWorksheetReader(sheet):
-        from_, to = row['From'], row['To']
-        azm, inc = float(row['Azm']), float(row['Inc'])
-        dist, comment = row['Dist m'], row['Comment']
-
-        from_p, to_p = stations.get(from_, None), stations.get(to, None)
-        if from_p and to_p:
-            continue
-        elif from_p and not to_p:
-            stations[to] = from_p.shot(dist, azm, inc)
-        elif to_p and not from_p:
-            stations[from_] = to_p.shot(dist, (azm + 180) % 360, -1 * inc)
         else:
-            raise Exception('unable to resolve fixed stations!  %s' % stations)  # TODO: make another pass?
+            stations[row['To']] = stations.get(row['To'], None)
+
+    passes = 0
+    while None in stations.values():
+        for row in ExcelWorksheetReader(sheet):
+            from_, to = row['From'], row['To']
+            azm, inc = float(row['Azm']), float(row['Inc'])
+            dist, comment = row['Dist m'], row['Comment']
+
+            from_p, to_p = stations.get(from_, None), stations.get(to, None)
+            if from_p and to_p:
+                continue
+            elif from_p and not to_p:
+                stations[to] = from_p.shot(dist, azm, inc)
+            elif to_p and not from_p:
+                stations[from_] = to_p.shot(dist, (azm + 180) % 360, -1 * inc)
+            else:
+                print('Initially unable to georeference!  %s' % stations)
+        passes += 1
+        if passes > 5:
+            raise Exception('Unable to georeference all stations after %d passes!  %s' % (passes, stations))
 
     return stations
 
