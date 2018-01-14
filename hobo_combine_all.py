@@ -18,6 +18,7 @@ import fnmatch
 from hobo import HoboCSVReader
 
 
+# TODO: clean these hard-coded lists up
 I_AND_M_SITES = set(['BALC','BOUL','CAST','FERN','FOST','GODO','HOCH','JUHE',
                      'LAHO','LOPI','NIIN','NIRV','OVPA', 'POOF','ROCO','SEAN',
                      'SILV','SOLA','VALE','YELL'])
@@ -34,13 +35,13 @@ def rglob(directory, pattern):
             if fnmatch.fnmatch(basename, pattern):
                 yield os.path.join(root, basename)
 
-def find_files(rootdir, sites):
-    """Generate list of all CSV files"""
+def find_files(rootdir, sites=None):
+    """Generate list of all CSV files, or optionally a specified subset"""
     for csvfname in rglob(rootdir, '*.csv'):
         #if 'Climate' not in csvfname:
         #    continue
         site = os.path.basename(csvfname).split('_',1)[0]
-        if site not in sites:
+        if sites and site not in sites:
             continue
         yield csvfname
 
@@ -48,8 +49,8 @@ def split_fname(fname):
     """Split a filename into (year, cave, site, filename)"""
     basename = os.path.basename(fname)
     toks = basename.split('_')
-    cave, site = toks[0], toks[1]
-    season = int([t for t in fname.split('\\') if '20' in t][0].split()[0])  # yuck!
+    cave, site = toks[0].upper(), toks[1].lower()
+    season = int([t for t in fname.split(os.sep) if '20' in t][0].split()[0])  # yuck!
     return season, cave, site, basename
 
 def sort_file(fname):
@@ -121,7 +122,5 @@ def main(rootdir, outdir, sites):
 if __name__ == '__main__':
     rootdir = '.'
     outdir = '.'
-    sites = sys.argv[1:] if len(sys.argv) > 1 else DEFAULT_SITES
+    sites = sys.argv[1:] if len(sys.argv) > 1 else None
     main(rootdir, outdir, sites)
-    
-
